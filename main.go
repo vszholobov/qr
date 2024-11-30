@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"image/png"
 	"os"
 	"strings"
 
 	"github.com/boombuler/barcode"
 	"github.com/boombuler/barcode/qr"
+	"github.com/google/uuid"
 )
 
 type Request struct {
@@ -51,8 +53,9 @@ func Handler(ctx context.Context, request *Request) (*Response, error) {
 	if len(strings.TrimSpace(link)) == 0 {
 		return makeResponse(400, nil, "Link is empty"), nil
 	}
-	filename := "/function/storage/qrcodes/qrcode.png"
-	file, err := qrCodeGen(link, filename, qrSize)
+
+	qrFilename := fmt.Sprintf("%s/%s.png", os.Getenv("QR_FILE_PATH"), uuid.NewString())
+	file, err := qrCodeGen(link, qrFilename, qrSize)
 	if err != nil {
 		return makeResponse(500, nil, "Failed to create QR code file"), err
 	}
@@ -65,7 +68,7 @@ func Handler(ctx context.Context, request *Request) (*Response, error) {
 	buffer := make([]byte, fileInfo.Size())
 	file.Read(buffer)
 	base64Encoded := base64.StdEncoding.EncodeToString(buffer)
-	os.Remove(filename)
+	os.Remove(qrFilename)
 	headers := map[string]string{"Content-Type": "image/png"}
 	return makeResponse(200, headers, base64Encoded), nil
 }
@@ -84,4 +87,8 @@ func qrCodeGen(content string, filename string, qrSize int) (*os.File, error) {
 	}
 	file, err = os.Open(filename)
 	return file, err
+}
+
+func main() {
+
 }

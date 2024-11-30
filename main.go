@@ -19,7 +19,8 @@ type Request struct {
 }
 
 type RequestBody struct {
-	Link string `json:"link"`
+	Link   string `json:"link"`
+	QrSize int    `json:"qrSize"`
 }
 
 type Response struct {
@@ -43,11 +44,15 @@ func Handler(ctx context.Context, request *Request) (*Response, error) {
 	json.Unmarshal([]byte(request.Body), &requestBody)
 
 	link := requestBody.Link
+	if requestBody.QrSize < 1 || requestBody.QrSize > 6 {
+		return makeResponse(400, nil, "Wrong qrSize"), nil
+	}
+	qrSize := requestBody.QrSize * 100
 	if len(strings.TrimSpace(link)) == 0 {
 		return makeResponse(400, nil, "Link is empty"), nil
 	}
 	filename := "/function/storage/qrcodes/qrcode.png"
-	file, err := qrCodeGen(link, filename)
+	file, err := qrCodeGen(link, filename, qrSize)
 	if err != nil {
 		return makeResponse(500, nil, "Failed to create QR code file"), err
 	}
@@ -65,9 +70,9 @@ func Handler(ctx context.Context, request *Request) (*Response, error) {
 	return makeResponse(200, headers, base64Encoded), nil
 }
 
-func qrCodeGen(content string, filename string) (*os.File, error) {
+func qrCodeGen(content string, filename string, qrSize int) (*os.File, error) {
 	qrCode, _ := qr.Encode(content, qr.M, qr.Auto)
-	qrCode, _ = barcode.Scale(qrCode, 500, 500)
+	qrCode, _ = barcode.Scale(qrCode, qrSize, qrSize)
 	file, err := os.Create(filename)
 	if err != nil {
 		return file, err

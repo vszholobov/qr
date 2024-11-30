@@ -6,10 +6,9 @@ import (
 	"encoding/json"
 	"image/png"
 	"os"
+	"strings"
 
-	// barcode scale
 	"github.com/boombuler/barcode"
-	// Build the QRcode for the text
 	"github.com/boombuler/barcode/qr"
 )
 
@@ -19,17 +18,9 @@ type Request struct {
 	IsBase64Encoded bool   `json:"isBase64Encoded"`
 }
 
-// Преобразуем поле body объекта RequestBody
 type RequestBody struct {
 	Link string `json:"link"`
 }
-
-/*type Request struct {
-	Body       []byte `json:"body"`
-	HttpMethod            string            `json:"httpMethod"`
-	Headers               map[string]string `json:"headers"`
-	QueryStringParameters map[string]string `json:"queryStringParameters"`
-}*/
 
 type Response struct {
 	StatusCode int               `json:"statusCode"`
@@ -48,20 +39,12 @@ func makeResponse(statusCode int, headers map[string]string, body string) *Respo
 func Handler(ctx context.Context, request *Request) (*Response, error) {
 	println(request.HttpMethod)
 	println(request.IsBase64Encoded)
-	// println(request.Headers["Host"])
-	// println(request.QueryStringParameters["link"])
-	// link := request.QueryStringParameters["link"]
-	// if link == "" {
-	// return makeResponse(500, nil, "Empty link query param"), nil
-	// }
-
 	requestBody := &RequestBody{}
-	// Массив байтов, содержащий тело запроса, преобразуется в соответствующий объект
 	json.Unmarshal([]byte(request.Body), &requestBody)
 
 	link := requestBody.Link
-	if link == "" {
-		return makeResponse(400, nil, "link is empty"), nil
+	if len(strings.TrimSpace(link)) == 0 {
+		return makeResponse(400, nil, "Link is empty"), nil
 	}
 	filename := "/function/storage/qrcodes/qrcode.png"
 	file, err := qrCodeGen(link, filename)
@@ -83,20 +66,17 @@ func Handler(ctx context.Context, request *Request) (*Response, error) {
 }
 
 func qrCodeGen(content string, filename string) (*os.File, error) {
-	// Create the barcode
 	qrCode, _ := qr.Encode(content, qr.M, qr.Auto)
-
-	// Scale the barcode to 200x200 pixels
 	qrCode, _ = barcode.Scale(qrCode, 500, 500)
-
-	// create the output file
 	file, err := os.Create(filename)
-
-	// encode the barcode as png
+	if err != nil {
+		return file, err
+	}
 	png.Encode(file, qrCode)
-	file.Close()
-
+	err = file.Close()
+	if err != nil {
+		return file, err
+	}
 	file, err = os.Open(filename)
-
 	return file, err
 }

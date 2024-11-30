@@ -1,0 +1,48 @@
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Создать ссылку на сайт в виде QR кода</title>
+    <link rel="icon" href="https://qr.vszholobov.ru/qr.ico" />
+</head>
+
+<body>
+    <h1>Добро пожаловать</h1>
+    <form action="javascript:link_to_qr()">
+        <label for="url">Введите ссылку:</label><br>
+        <input id="url" name="url" type="text"><br>
+        <input type="submit" value="Сгенерировать QR">
+    </form>
+    <div id="qr_result"></div>
+
+    <script>
+        function link_to_qr() {
+            const link = document.getElementById("url").value
+            fetch("/qr", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ link: link })
+            })
+                .then(response => response.blob())
+                .then(async data => {
+                    console.log(data);
+                    let base64Image = await data.text();
+                    console.log(base64Image);
+                    const img = document.createElement("img");
+                    img.src = "data:image/jpg;base64," + base64Image;
+                    img.alt = "QR Code";
+                    const resultDiv = document.getElementById("qr_result");
+                    resultDiv.innerHTML = "";
+                    resultDiv.appendChild(img);
+                })
+                .catch(error => {
+                    document.getElementById("shortened").innerHTML = `<p>Произошла ошибка ${error}, попробуйте еще раз</p>`
+                })
+        }
+    </script>
+
+</body>
+
+</html>

@@ -17,37 +17,62 @@
             <div class="mb-3">
                 <label for="url" class="form-label">Введите ссылку:</label>
                 <input id="url" name="url" type="text" class="form-control" placeholder="https://example.com">
+                <div id="error_message" class="text-danger mt-2" style="display: none;">Введите ссылку перед генерацией QR-кода.</div>
             </div>
             <button type="submit" class="btn btn-primary w-100">Сгенерировать QR</button>
         </form>
+        <!-- Индикатор загрузки -->
+        <div id="loading" class="mt-4 d-none">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Загрузка...</span>
+            </div>
+            <p class="text-muted">Генерация QR-кода...</p>
+        </div>
         <div id="qr_result" class="mt-4"></div>
     </div>
 
     <!-- Скрипт -->
     <script>
         function link_to_qr() {
-            const link = document.getElementById("url").value
+            const urlInput = document.getElementById("url");
+            const errorMessage = document.getElementById("error_message");
+            const loadingIndicator = document.getElementById("loading");
+            const resultDiv = document.getElementById("qr_result");
+
+            // Очистить предыдущие состояния
+            errorMessage.style.display = "none";
+            resultDiv.innerHTML = "";
+
+            // Проверка пустого ввода
+            if (urlInput.value.trim() === "") {
+                errorMessage.style.display = "block";
+                return;
+            }
+
+            // Показать индикатор загрузки
+            loadingIndicator.classList.remove("d-none");
+
             fetch("/qr", {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ link: link })
+                body: JSON.stringify({ link: urlInput.value.trim() })
             })
                 .then(response => response.blob())
                 .then(async data => {
-                    console.log(data);
                     let base64Image = await data.text();
-                    console.log(base64Image);
                     const img = document.createElement("img");
                     img.src = "data:image/jpg;base64," + base64Image;
                     img.alt = "QR Code";
-                    const resultDiv = document.getElementById("qr_result");
-                    resultDiv.innerHTML = "";
                     resultDiv.appendChild(img);
                 })
                 .catch(error => {
-                    document.getElementById("qr_result").innerHTML = `<p class="text-danger">Произошла ошибка: ${error}, попробуйте еще раз</p>`;
+                    resultDiv.innerHTML = `<p class="text-danger">Произошла ошибка: ${error}, попробуйте еще раз</p>`;
+                })
+                .finally(() => {
+                    // Скрыть индикатор загрузки
+                    loadingIndicator.classList.add("d-none");
                 });
         }
     </script>

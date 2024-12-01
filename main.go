@@ -55,6 +55,7 @@ func Handler(ctx context.Context, request *Request) (*Response, error) {
 	}
 
 	qrFilename := fmt.Sprintf("%s/%s.png", os.Getenv("QR_FILE_PATH"), uuid.NewString())
+	println(qrFilename)
 	file, err := qrCodeGen(link, qrFilename, qrSize)
 	if err != nil {
 		return makeResponse(500, nil, "Failed to create QR code file"), err
@@ -87,8 +88,4 @@ func qrCodeGen(content string, filename string, qrSize int) (*os.File, error) {
 	}
 	file, err = os.Open(filename)
 	return file, err
-}
-
-func main() {
-
 }

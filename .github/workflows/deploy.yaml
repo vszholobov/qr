@@ -1,0 +1,42 @@
+name: Deploy Serverless Function
+
+on:
+  push:
+    branches:
+      - "main"
+  pull_request:
+    branches:
+      - "main"
+  
+env:
+  YC_SERVICE_ACCOUNT_KEY_FILE: ${{ secrets.YC_SERVICE_ACCOUNT_KEY_FILE }} # yandex cloud account credentials file
+  ACCESS_KEY: ${{ secrets.ACCESS_KEY }} # s3 key
+  SECRET_KEY: ${{ secrets.SECRET_KEY }} # s3 key
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Шаг 1: Клонирование репозитория
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Шаг 2: Упаковка файлов в ZIP
+      - name: Package files
+        run: |
+          zip function.zip main.go go.mod go.sum
+
+      # Шаг 3: Настройка Terraform
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      # Шаг 4: Инициализация Terraform
+      - name: Initialize Terraform
+        run: terraform init -backend-config="access_key=$ACCESS_KEY" -backend-config="secret_key=$SECRET_KEY"
+        working-directory: terraform
+
+      # Шаг 5: Обновление функции в Yandex Cloud
+      - name: Apply Terraform
+        run: terraform apply -auto-approve -replace="random_string.function_version" -var="function_zip_file=../terraform.zip"
+        working-directory: terraform

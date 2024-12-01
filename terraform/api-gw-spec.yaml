@@ -1,0 +1,29 @@
+openapi: 3.0.0
+info:
+  title: qr-coder-api-gateway
+  version: 1.0.0
+paths:
+  /:
+    get:
+      x-yc-apigateway-integration:
+        type: object_storage
+        bucket: ${bucket}        # <-- имя бакета
+        object: index.html         # <-- имя html-файла
+        presigned_redirect: false
+        service_account: ${service-account-id} # <-- идентификатор сервисного аккаунта
+      operationId: static
+  /qr.ico:
+    get:
+      x-yc-apigateway-integration:
+        type: object_storage
+        bucket: ${bucket}        # <-- имя бакета
+        object: qr.ico         # <-- имя icon
+        presigned_redirect: false
+        service_account: ${service-account-id} # <-- идентификатор сервисного аккаунта
+      operationId: static_ico
+  /qr:
+    post:
+      x-yc-apigateway-integration:
+        type: cloud_functions
+        function_id: ${qr-function-id}              # <-- идентификатор функции
+      operationId: qr

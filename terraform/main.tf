@@ -11,7 +11,7 @@ terraform {
     endpoints = {
       s3 = "https://storage.yandexcloud.net"
     }
-    bucket = "vszholobov-storage-for-serverless-shortener"
+    bucket = "vszholobov-qr-coder-terraform-storage"
     region = "ru-central1-a"
     key    = "terraform-state/terraform.tfstate"
 
@@ -34,6 +34,7 @@ variable "function_zip_file" {
   description = "Path to function zip file"
 }
 
+# qr generation function
 resource "yandex_function" "qr-code-generator" {
   name        = "qr-code-generator"
   memory      = 128
@@ -48,7 +49,8 @@ resource "yandex_function" "qr-code-generator" {
     name = "qrcodes"
     mode = "rw"
     object_storage {
-      bucket = "vszholobov-storage-for-serverless-shortener"
+      # bucket = local.bucket
+      bucket = yandex_storage_bucket.vszholobov-qr-coder-storage.bucket
       prefix = "qrcodes"
     }
   }
@@ -61,7 +63,7 @@ resource "yandex_function" "qr-code-generator" {
   }
 }
 
-# public invocation access
+# qr function public invocation access
 resource "yandex_function_iam_binding" "qr-code-generator-binding" {
   function_id = yandex_function.qr-code-generator.id
   role        = "functions.functionInvoker"
@@ -70,12 +72,61 @@ resource "yandex_function_iam_binding" "qr-code-generator-binding" {
   ]
 }
 
+# qr function random version id
 resource "random_string" "function_version" {
   length  = 10
   special = false
   upper   = false
 }
 
+# qr function gateway
+resource "yandex_api_gateway" "qr-api-gateway" {
+  name = "qr-api-gateway"
+  spec = templatefile("${path.module}/api-gw-spec.yaml", {
+    # bucket             = local.bucket,
+    bucket             = yandex_storage_bucket.vszholobov-qr-coder-storage.bucket,
+    service-account-id = data.yandex_iam_service_account.qr-coder.id,
+    qr-function-id     = yandex_function.qr-code-generator.id
+  })
+
+  custom_domains {
+    certificate_id = data.yandex_cm_certificate.vszholobov-le.id
+    fqdn           = "qr.vszholobov.ru"
+  }
+}
+
+resource "yandex_storage_bucket" "vszholobov-qr-coder-storage" {
+  access_key = yandex_iam_service_account_static_access_key.sa-static-key.access_key
+  secret_key = yandex_iam_service_account_static_access_key.sa-static-key.secret_key
+  bucket     = "vszholobov-qr-coder-storage"
+}
+
+resource "yandex_iam_service_account_static_access_key" "sa-static-key" {
+  service_account_id = data.yandex_iam_service_account.qr-coder.id
+}
+
+resource "yandex_storage_object" "static-index-page" {
+  # bucket = local.bucket
+  bucket = yandex_storage_bucket.vszholobov-qr-coder-storage.bucket
+  key    = "index.html"
+  content = file("${path.module}/../static/index.html")
+  acl = "public-read"
+  content_type = "text/html"
+}
+
+resource "yandex_storage_object" "static-index-page-icon" {
+  # bucket = local.bucket
+  bucket = yandex_storage_bucket.vszholobov-qr-coder-storage.bucket
+  key    = "qr.ico"
+  content = filebase64("${path.module}/../static/qr.ico")
+  acl = "public-read"
+  content_type = "image/x-icon"
+}
+
 data "yandex_iam_service_account" "qr-coder" {
   service_account_id = "ajear3vdc2uf616skngd"
+}
+
+data "yandex_cm_certificate" "vszholobov-le" {
+  certificate_id = "fpqu84n9e9fq12ol6bp3"
 }

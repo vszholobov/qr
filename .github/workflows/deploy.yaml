@@ -40,5 +40,5 @@ jobs:
 
       # Шаг 5: Обновление функции в Yandex Cloud
       - name: Apply Terraform
-        run: terraform apply -auto-approve -replace="random_string.function_version" -var="function_zip_file=../terraform.zip"
+        run: terraform apply -auto-approve -replace="random_string.function_version" -var="function_zip_file=../function.zip"
         working-directory: terraform

@@ -44,7 +44,6 @@ func Handler(ctx context.Context, request *Request) (*Response, error) {
 	println(request.IsBase64Encoded)
 	requestBody := &RequestBody{}
 	json.Unmarshal([]byte(request.Body), &requestBody)
-
 	link := requestBody.Link
 	if requestBody.QrSize < 1 || requestBody.QrSize > 6 {
 		return makeResponse(400, nil, "Wrong qrSize"), nil
@@ -53,9 +52,8 @@ func Handler(ctx context.Context, request *Request) (*Response, error) {
 	if len(strings.TrimSpace(link)) == 0 {
 		return makeResponse(400, nil, "Link is empty"), nil
 	}
-
 	qrFilename := fmt.Sprintf("%s/%s.png", os.Getenv("QR_FILE_PATH"), uuid.NewString())
-	println(qrFilename)
+	fmt.Printf("fileName: %s\n", qrFilename)
 	file, err := qrCodeGen(link, qrFilename, qrSize)
 	if err != nil {
 		return makeResponse(500, nil, "Failed to create QR code file"), err

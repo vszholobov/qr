@@ -109,7 +109,7 @@ resource "yandex_storage_object" "static-index-page" {
   # bucket = local.bucket
   bucket = yandex_storage_bucket.vszholobov-qr-coder-storage.bucket
   key    = "index.html"
-  content = file("${path.module}/../static/index.html")
+  source = "../static/index.html"
   acl = "public-read"
   content_type = "text/html"
 }
@@ -118,7 +118,7 @@ resource "yandex_storage_object" "static-index-page-icon" {
   # bucket = local.bucket
   bucket = yandex_storage_bucket.vszholobov-qr-coder-storage.bucket
   key    = "qr.ico"
-  content = filebase64("${path.module}/../static/qr.ico")
+  source = "../static/qr.ico"
   acl = "public-read"
   content_type = "image/x-icon"
 }

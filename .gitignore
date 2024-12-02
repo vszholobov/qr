@@ -1,2 +1,4 @@
 .vscode
 terraform/.terraform*
+function.zip
+.DS_STORE
